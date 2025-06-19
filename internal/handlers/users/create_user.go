@@ -1,45 +1,41 @@
-package handlers
+package users
 
 import (
 	"encoding/json"
-	"github.com/GalahadKingsman/messenger_users/pkg/messenger_users_api"
-	"golang.org/x/net/context"
-	"messenger_frontend/internal/grpc_clients/users"
+	ap "github.com/GalahadKingsman/messenger_users/pkg/messenger_users_api"
+	"io"
 	"net/http"
 )
 
-type CreateUserRequest struct {
-	Login     string `json:"login"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Password  string `json:"password"`
-}
+func CreateUserHandler(usersClient ap.UserServiceClient) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+			return
+		}
 
-func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-	var req CreateUserRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "неправильный JSON", http.StatusBadRequest)
-		return
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Не удалось прочитать тело запроса", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		var req ap.CreateRequest
+		if err := json.Unmarshal(body, &req); err != nil {
+			http.Error(w, "Некорректный JSON", http.StatusBadRequest)
+			return
+		}
+
+		// Вызов gRPC-метода
+		resp, err := usersClient.CreateUser(r.Context(), &req)
+		if err != nil {
+			http.Error(w, "Ошибка при создании пользователя: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Отправка успешного ответа
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
 	}
-
-	grpcReq := &messenger_users_api.CreateRequest{
-		Login:     req.Login,
-		FirstName: req.FirstName,
-		LastName:  req.LastName,
-		Email:     req.Email,
-		Phone:     req.Phone,
-		Password:  req.Password,
-	}
-
-	resp, err := client.UsersClient.(context.Background(), grpcReq)
-	if err != nil {
-		http.Error(w, "ошибка gRPC: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": resp.Success,
-	})
 }

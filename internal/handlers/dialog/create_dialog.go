@@ -9,16 +9,6 @@ import (
 	"time"
 )
 
-type Service struct {
-	dialogServiceClient api.DialogServiceClient
-}
-
-func New(dialogServiceClient api.DialogServiceClient) *Service {
-	return &Service{
-		dialogServiceClient: dialogServiceClient,
-	}
-}
-
 func CreateDialogHandler(dialogsClient api.DialogServiceClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		type RequestBody struct {
