@@ -7,11 +7,11 @@ toolchain go1.23.3
 require (
 	github.com/GalahadKingsman/messenger_dialog v0.0.0-20250610141914-813c11d02f9c
 	github.com/GalahadKingsman/messenger_users v0.0.0-20250617091901-9d0bf871b6ba
-	golang.org/x/net v0.38.0
 	google.golang.org/grpc v1.73.0
 )
 
 require (
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
