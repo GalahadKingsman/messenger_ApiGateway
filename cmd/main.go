@@ -43,6 +43,9 @@ func main() {
 	userHandler := handlers.NewUserHandlerService(usersClient)
 	userHandler.RegisterHandlers(mux)
 
+	notificationHandler := handlers.NewNotificationHandler("http://notifications:8082")
+	notificationHandler.RegisterHandlers(mux)
+
 	// Запуск HTTP-сервера
 	srv := &http.Server{
 		Addr:         ":8080",

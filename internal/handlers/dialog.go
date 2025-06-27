@@ -22,7 +22,7 @@ func (d *DialogHandlerService) RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/dialog/create", d.CreateDialogHandler())
 	mux.HandleFunc("/dialog/send", d.SendMessageHandler())
 	mux.HandleFunc("/dialog/messages", d.GetDialogMessagesHandler())
-	mux.HandleFunc("/dialogs/user", d.GetUserDialogsHandler())
+	mux.HandleFunc("/dialog/user", d.GetUserDialogsHandler())
 }
 
 func (d *DialogHandlerService) CreateDialogHandler() http.HandlerFunc {
