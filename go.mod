@@ -7,6 +7,7 @@ toolchain go1.23.3
 require (
 	github.com/GalahadKingsman/messenger_dialog v0.0.0-20250610141914-813c11d02f9c
 	github.com/GalahadKingsman/messenger_users v0.0.0-20250617091901-9d0bf871b6ba
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	google.golang.org/grpc v1.73.0
 )
 

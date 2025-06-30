@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"messenger_frontend/internal/handlers"
+	"messenger_frontend/internal/middleware"
 	"net/http"
 	"time"
 )
@@ -20,7 +21,7 @@ func main() {
 	}
 
 	// Подключение к dialog-сервису
-	dialogsConn, err := grpc.DialContext(ctx, "localhost:9001", opts...)
+	dialogsConn, err := grpc.DialContext(ctx, "dialog_service:9001", opts...)
 	if err != nil {
 		log.Fatalf("не удалось подключиться к dialogs gRPC: %v", err)
 	}
@@ -28,7 +29,7 @@ func main() {
 	dialogsClient := dapi.NewDialogServiceClient(dialogsConn)
 
 	// Подключение к users-сервису
-	usersConn, err := grpc.DialContext(ctx, "localhost:9000", opts...)
+	usersConn, err := grpc.DialContext(ctx, "users_service:9000", opts...)
 	if err != nil {
 		log.Fatalf("не удалось подключиться к users gRPC: %v", err)
 	}
@@ -46,10 +47,12 @@ func main() {
 	notificationHandler := handlers.NewNotificationHandler("http://notifications:8082")
 	notificationHandler.RegisterHandlers(mux)
 
+	protectedMux := middleware.JWTAuthMiddleware(mux)
+
 	// Запуск HTTP-сервера
 	srv := &http.Server{
 		Addr:         ":8080",
-		Handler:      mux,
+		Handler:      protectedMux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
