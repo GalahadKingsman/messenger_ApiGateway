@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	uapi "github.com/GalahadKingsman/messenger_users/pkg/messenger_users_api"
+	"github.com/redis/go-redis/v9"
 	"io"
 	"log"
 	"net/http"
@@ -13,10 +15,15 @@ import (
 
 type UserHandlerService struct {
 	UserServiceClient uapi.UserServiceClient
+	redisClient       *redis.Client
 }
 
-func NewUserHandlerService(client uapi.UserServiceClient) *UserHandlerService {
-	return &UserHandlerService{UserServiceClient: client}
+func NewUserHandlerService(client uapi.UserServiceClient, redisClient *redis.Client) *UserHandlerService {
+	return &UserHandlerService{
+		UserServiceClient: client,
+		redisClient:       redisClient,
+	}
+
 }
 
 func (u *UserHandlerService) RegisterHandlers(mux *http.ServeMux) {
@@ -113,7 +120,6 @@ func (u *UserHandlerService) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		// Только POST разрешён
 		if r.Method != http.MethodPost {
 			http.Error(w, `{"error":"только POST запрос разрешен"}`, http.StatusMethodNotAllowed)
 			return
@@ -148,17 +154,26 @@ func (u *UserHandlerService) LoginHandler() http.HandlerFunc {
 			http.Error(w, `{"error":"ошибка сервера при входе"}`, http.StatusInternalServerError)
 			return
 		}
-
-		// Формируем JSON-ответ
+		fmt.Printf("RESP FROM USERS: %+v\n", resp)
+		if resp.Token == "" {
+			http.Error(w, `{"error":"некорректный логин или пароль"}`, http.StatusUnauthorized)
+			return
+		}
+		token := resp.Token
+		err = u.redisClient.Set(context.Background(), "token:"+strconv.Itoa(int(resp.UserId)), token, 0).Err()
+		if err != nil {
+			http.Error(w, "failed to save token", http.StatusInternalServerError)
+			return
+		}
 		response := map[string]interface{}{
 			"message": resp.Message,
+			"user_id": resp.UserId,
+			"token":   resp.Token,
 		}
-		if resp.UserId != 0 {
-			response["user_id"] = resp.UserId
-		}
-
 		json.NewEncoder(w).Encode(response)
+
 	}
+
 }
 
 func (u *UserHandlerService) CreateUserHandler() http.HandlerFunc {

@@ -9,12 +9,15 @@ import (
 	"log"
 	"messenger_frontend/internal/handlers"
 	"messenger_frontend/internal/middleware"
+	"messenger_frontend/internal/storage"
 	"net/http"
 	"time"
 )
 
 func main() {
 	ctx := context.Background()
+
+	storage.InitRedis()
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -41,7 +44,7 @@ func main() {
 	dialogHandler := handlers.NewDialogHandlerService(dialogsClient)
 	dialogHandler.RegisterHandlers(mux)
 
-	userHandler := handlers.NewUserHandlerService(usersClient)
+	userHandler := handlers.NewUserHandlerService(usersClient, storage.Rdb)
 	userHandler.RegisterHandlers(mux)
 
 	notificationHandler := handlers.NewNotificationHandler("http://notifications:8082")
