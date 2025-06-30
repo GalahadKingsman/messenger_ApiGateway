@@ -2,42 +2,61 @@ package handlers
 
 import (
 	"io"
+	"messenger_frontend/internal/middleware"
 	"net/http"
+	"net/url"
 )
 
 type NotificationHandler struct {
-	TargetURL string
+	BaseURL string
 }
 
-func NewNotificationHandler(target string) *NotificationHandler {
-	return &NotificationHandler{TargetURL: target}
+type Notification struct {
+	From    string `json:"from"`
+	Message string `json:"message"`
+}
+
+func NewNotificationHandler(baseURL string) *NotificationHandler {
+	return &NotificationHandler{BaseURL: baseURL}
 }
 
 func (h *NotificationHandler) RegisterHandlers(mux *http.ServeMux) {
-	mux.HandleFunc("/notifications/", h.proxy)
+	mux.HandleFunc("/notifications", h.proxy("/"))
+	mux.HandleFunc("/notifications/clear", h.proxy("/clear"))
+	mux.HandleFunc("/notifications/longpoll", h.proxy("/longpoll"))
 }
 
-func (h *NotificationHandler) proxy(w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
-	url := h.TargetURL + r.URL.Path
-	req, err := http.NewRequest(r.Method, url, r.Body)
-	if err != nil {
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
+func (h *NotificationHandler) proxy(endpoint string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.Context().Value(middleware.UserIDKey)
+		userIDStr, ok := userID.(string)
+		if !ok {
+			http.Error(w, "user ID missing", http.StatusUnauthorized)
+			return
+		}
 
-	req.Header = r.Header
+		// строим URL с userID как query параметр
+		proxyURL, _ := url.Parse(h.BaseURL + endpoint)
+		query := r.URL.Query()
+		query.Set("userID", userIDStr)
+		proxyURL.RawQuery = query.Encode()
 
-	resp, err := client.Do(req)
-	if err != nil {
-		http.Error(w, "notifications service unavailable", http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
+		proxyReq, _ := http.NewRequest(r.Method, proxyURL.String(), r.Body)
+		proxyReq.Header = r.Header.Clone()
 
-	for k, v := range resp.Header {
-		w.Header()[k] = v
+		resp, err := http.DefaultClient.Do(proxyReq)
+		if err != nil {
+			http.Error(w, "proxy error", http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+
+		for k, vv := range resp.Header {
+			for _, v := range vv {
+				w.Header().Add(k, v)
+			}
+		}
+		w.WriteHeader(resp.StatusCode)
+		_, _ = io.Copy(w, resp.Body)
 	}
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
 }
