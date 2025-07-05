@@ -47,7 +47,7 @@ func main() {
 	userHandler := handlers.NewUserHandlerService(usersClient, storage.Rdb)
 	userHandler.RegisterHandlers(mux)
 
-	notificationHandler := handlers.NewNotificationHandler("http://notifications:8082")
+	notificationHandler := handlers.NewNotificationHandler("http://notifications:8082/notifications")
 	notificationHandler.RegisterHandlers(mux)
 
 	protectedMux := middleware.JWTAuthMiddleware(mux)
@@ -57,7 +57,7 @@ func main() {
 		Addr:         ":8080",
 		Handler:      protectedMux,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 35 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 

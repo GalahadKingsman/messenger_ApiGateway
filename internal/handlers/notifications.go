@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"io"
+	"log"
 	"messenger_frontend/internal/middleware"
 	"net/http"
 	"net/url"
@@ -28,6 +29,10 @@ func (h *NotificationHandler) RegisterHandlers(mux *http.ServeMux) {
 
 func (h *NotificationHandler) proxy(endpoint string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("[Gateway] proxy %s %s → %s%s?%s",
+			r.Method, r.URL.Path,
+			h.BaseURL, endpoint, r.URL.RawQuery,
+		)
 		userID := r.Context().Value(middleware.UserIDKey)
 		userIDStr, ok := userID.(string)
 		if !ok {
@@ -35,7 +40,6 @@ func (h *NotificationHandler) proxy(endpoint string) http.HandlerFunc {
 			return
 		}
 
-		// строим URL с userID как query параметр
 		proxyURL, _ := url.Parse(h.BaseURL + endpoint)
 		query := r.URL.Query()
 		query.Set("userID", userIDStr)
@@ -50,6 +54,8 @@ func (h *NotificationHandler) proxy(endpoint string) http.HandlerFunc {
 			return
 		}
 		defer resp.Body.Close()
+
+		log.Printf("[Gateway] upstream returned %d %s", resp.StatusCode, resp.Status)
 
 		for k, vv := range resp.Header {
 			for _, v := range vv {
