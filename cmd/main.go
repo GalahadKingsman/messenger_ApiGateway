@@ -11,6 +11,7 @@ import (
 	"messenger_frontend/internal/middleware"
 	"messenger_frontend/internal/storage"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -24,7 +25,7 @@ func main() {
 	}
 
 	// Подключение к dialog-сервису
-	dialogsConn, err := grpc.DialContext(ctx, "dialog_service:9001", opts...)
+	dialogsConn, err := grpc.DialContext(ctx, os.Getenv("DIALOG"), opts...)
 	if err != nil {
 		log.Fatalf("не удалось подключиться к dialogs gRPC: %v", err)
 	}
@@ -32,7 +33,7 @@ func main() {
 	dialogsClient := dapi.NewDialogServiceClient(dialogsConn)
 
 	// Подключение к users-сервису
-	usersConn, err := grpc.DialContext(ctx, "users_service:9000", opts...)
+	usersConn, err := grpc.DialContext(ctx, os.Getenv("USERS"), opts...)
 	if err != nil {
 		log.Fatalf("не удалось подключиться к users gRPC: %v", err)
 	}
@@ -54,14 +55,14 @@ func main() {
 
 	// Запуск HTTP-сервера
 	srv := &http.Server{
-		Addr:         ":8080",
+		Addr:         os.Getenv("SERVER_PORT"),
 		Handler:      protectedMux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 35 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	log.Println("HTTP сервер запущен на :8080")
+	log.Println("HTTP сервер запущен")
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("ошибка запуска HTTP-сервера: %v", err)
 	}

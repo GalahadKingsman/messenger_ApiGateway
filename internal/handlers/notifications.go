@@ -22,7 +22,7 @@ func NewNotificationHandler(baseURL string) *NotificationHandler {
 }
 
 func (h *NotificationHandler) RegisterHandlers(mux *http.ServeMux) {
-	mux.HandleFunc("/notifications", h.proxy("/"))
+	mux.HandleFunc("/notifications", h.proxy(""))
 	mux.HandleFunc("/notifications/clear", h.proxy("/clear"))
 	mux.HandleFunc("/notifications/longpoll", h.proxy("/longpoll"))
 }
