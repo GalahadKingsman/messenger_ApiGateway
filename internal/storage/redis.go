@@ -2,6 +2,7 @@ package storage
 
 import (
 	redis "github.com/redis/go-redis/v9"
+	"os"
 )
 
 var (
@@ -10,7 +11,7 @@ var (
 
 func InitRedis() {
 	Rdb = redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
+		Addr:     os.Getenv("REDIS_ADDR"),
 		Password: "",
 		DB:       0,
 	})

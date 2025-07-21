@@ -66,3 +66,7 @@ func (h *NotificationHandler) proxy(endpoint string) http.HandlerFunc {
 		_, _ = io.Copy(w, resp.Body)
 	}
 }
+
+func (h *NotificationHandler) RegisterHandlersAndGet(endpoint string) http.HandlerFunc {
+	return h.proxy(endpoint)
+}
